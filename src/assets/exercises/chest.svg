@@ -1,0 +1,14 @@
+<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="200" rx="28" fill="#FFF8EC"/>
+  <rect x="22" y="22" width="276" height="156" rx="24" fill="#F5E3CA"/>
+  <path d="M82 126H236" stroke="#38545F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M102 126V98" stroke="#38545F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M216 126V98" stroke="#38545F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M124 90H196" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="136" cy="118" r="12" stroke="#8F4A2A" stroke-width="10"/>
+  <path d="M148 120H182" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M182 120L208 102" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M148 120L138 146" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M182 120L192 146" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <text x="36" y="52" fill="#8F4A2A" font-size="22" font-family="Segoe UI, sans-serif" font-weight="700">CHEST</text>
+</svg>

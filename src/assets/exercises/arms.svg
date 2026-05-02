@@ -1,0 +1,13 @@
+<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="200" rx="28" fill="#FFF7ED"/>
+  <rect x="22" y="22" width="276" height="156" rx="24" fill="#F5E6D6"/>
+  <circle cx="160" cy="72" r="14" stroke="#8F4A2A" stroke-width="10"/>
+  <path d="M160 86V130" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M160 106L126 120" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M160 106L194 120" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M126 120L114 98" stroke="#38545F" stroke-width="10" stroke-linecap="round"/>
+  <path d="M194 120L206 98" stroke="#38545F" stroke-width="10" stroke-linecap="round"/>
+  <path d="M160 130L146 168" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M160 130L174 168" stroke="#8F4A2A" stroke-width="10" stroke-linecap="round"/>
+  <text x="36" y="52" fill="#8F4A2A" font-size="22" font-family="Segoe UI, sans-serif" font-weight="700">ARMS</text>
+</svg>
