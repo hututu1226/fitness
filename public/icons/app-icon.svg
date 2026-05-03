@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="240" fill="url(#bg)" />
+  <rect x="156" y="156" width="712" height="712" rx="192" fill="url(#panel)" fill-opacity="0.32" />
+  <path
+    d="M336 248H680V344H448V456H640V552H448V776H336V248Z"
+    fill="white"
+  />
+  <path
+    d="M702 336H790M234 664H322M702 664H790M234 336H322"
+    stroke="white"
+    stroke-width="42"
+    stroke-linecap="round"
+  />
+  <path
+    d="M676 336H702M676 664H702M322 336H348M322 664H348"
+    stroke="white"
+    stroke-width="28"
+    stroke-linecap="round"
+  />
+  <defs>
+    <linearGradient id="bg" x1="144" y1="96" x2="840" y2="904" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F08A52" />
+      <stop offset="1" stop-color="#8F3B1E" />
+    </linearGradient>
+    <linearGradient id="panel" x1="192" y1="176" x2="820" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#F6F1E8" stop-opacity="0.05" />
+    </linearGradient>
+  </defs>
+</svg>
