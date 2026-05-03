@@ -174,9 +174,6 @@ export function StatsPage() {
           <header className="rounded-[2rem] bg-[linear-gradient(180deg,#f7efe3_0%,#efdfca_100%)] p-5 text-center shadow-[0_20px_40px_rgba(143,59,30,0.08)]">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--color-brand-deep)]">Stats</p>
             <h2 className="mt-2 text-2xl font-bold text-[var(--color-ink)]">统计</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              先看总训练量，再分别看周、月、年的训练分布。
-            </p>
           </header>
 
           <div className="grid grid-cols-2 gap-3">

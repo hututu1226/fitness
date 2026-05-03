@@ -10,9 +10,6 @@ export function AppShell() {
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--color-ink)]">健身动作记录</h1>
-            <p className="mt-1 text-sm text-[var(--color-muted)]">
-              先看统计，再从加号里选择动作并录入训练。
-            </p>
           </div>
           <div className="rounded-full bg-[var(--color-brand)] px-3 py-1 text-xs font-semibold text-white">
             MVP

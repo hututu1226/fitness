@@ -6,8 +6,8 @@ import { getBodyPartLabel } from '../features/exercises/options'
 import { getExerciseById } from '../features/exercises/service'
 import { WorkoutEntryForm } from '../features/workouts/components/WorkoutEntryForm'
 import type { WorkoutEntryFormValues } from '../features/workouts/schema'
-import { createWorkoutEntry, listWorkoutEntriesByDate } from '../features/workouts/service'
 import { joinWorkoutEntriesWithExercises } from '../features/workouts/selectors'
+import { createWorkoutEntry, listWorkoutEntriesByDate } from '../features/workouts/service'
 
 export function WorkoutEntryPage() {
   const { exerciseId } = useParams()
@@ -41,7 +41,7 @@ export function WorkoutEntryPage() {
         }
 
         if (!nextExercise || nextExercise.isDeleted) {
-          setError('这个动作不存在了，请重新选择。')
+          setError('这个动作已经不存在了，请重新选择。')
           setExercise(null)
           return
         }
@@ -126,10 +126,6 @@ export function WorkoutEntryPage() {
               Training Entry
             </p>
             <h2 className="mt-2 text-xl font-bold text-[var(--color-ink)]">{exercise.name}</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              <span className="whitespace-nowrap">{getBodyPartLabel(exercise.bodyPart)}</span>
-              <span> · 只保留组数、重量、次数和备注，录入更快。</span>
-            </p>
           </div>
           <span className="whitespace-nowrap rounded-full bg-white/80 px-3 py-2 text-xs font-semibold text-[var(--color-brand-deep)]">
             {getBodyPartLabel(exercise.bodyPart)}
@@ -153,7 +149,7 @@ export function WorkoutEntryPage() {
           <div>
             <h3 className="text-lg font-bold text-[var(--color-ink)]">当天记录</h3>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              {dayjs(selectedDate).format('YYYY 年 M 月 D 日')} · 共 {entryCards.length} 条记录
+              {dayjs(selectedDate).format('YYYY年M月D日')} · 共 {entryCards.length} 条记录
             </p>
           </div>
         </div>
@@ -186,9 +182,7 @@ export function WorkoutEntryPage() {
                   </div>
                 </div>
 
-                {entry.notes ? (
-                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{entry.notes}</p>
-                ) : null}
+                {entry.notes ? <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{entry.notes}</p> : null}
               </article>
             ))}
           </div>

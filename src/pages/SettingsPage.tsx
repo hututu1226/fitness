@@ -129,9 +129,6 @@ export function SettingsPage() {
       <header className="rounded-[2rem] bg-[linear-gradient(180deg,#f7efe3_0%,#efdfca_100%)] p-5 text-center shadow-[0_20px_40px_rgba(143,59,30,0.08)]">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--color-brand-deep)]">Settings</p>
         <h2 className="mt-2 text-2xl font-bold text-[var(--color-ink)]">设置</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          先把最实用的数据管理放在这里，避免本地记录丢失。
-        </p>
       </header>
 
       {message ? (
@@ -159,9 +156,6 @@ export function SettingsPage() {
 
       <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
         <h3 className="text-lg font-bold text-[var(--color-ink)]">数据管理</h3>
-        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          导出会把动作库和训练记录打包成一个 JSON 文件。导入会用文件里的内容覆盖当前本地数据。
-        </p>
 
         <div className="mt-4 grid gap-3">
           <button
@@ -204,9 +198,8 @@ export function SettingsPage() {
       <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
         <h3 className="text-lg font-bold text-[var(--color-ink)]">关于本应用</h3>
         <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-muted)]">
-          <p>当前版本是移动端优先的本地训练记录 MVP，数据默认保存在浏览器的 IndexedDB 里。</p>
-          <p>动作 GIF 已经跟随应用打包到本地，所以离线也能看动作示意。</p>
-          <p>后续这里还可以继续加：单位偏好、缓存状态、离线提示、版本日志。</p>
+          <p>这是一个移动端优先的本地训练记录 App，数据默认保存在浏览器的 IndexedDB。</p>
+          <p>动作 GIF 跟随应用一起打包，离线时也能继续查看。</p>
         </div>
       </section>
     </section>

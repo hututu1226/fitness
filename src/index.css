@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@keyframes splash-load {
+  0% {
+    transform: scaleX(0.12);
+    opacity: 0.6;
+  }
+
+  60% {
+    transform: scaleX(0.72);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
 @theme {
   --color-ink: #182126;
   --color-muted: #60717d;
