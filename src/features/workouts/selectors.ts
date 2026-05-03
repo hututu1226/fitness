@@ -10,7 +10,10 @@ export type WorkoutEntriesByDateGroup = {
   entries: WorkoutEntryWithExercise[]
 }
 
-export function joinWorkoutEntriesWithExercises(entries: WorkoutEntry[], exercises: Exercise[]) {
+export function joinWorkoutEntriesWithExercises(
+  entries: WorkoutEntry[],
+  exercises: Exercise[],
+): WorkoutEntryWithExercise[] {
   const exerciseMap = new Map(exercises.map((exercise) => [exercise.id, exercise]))
 
   return entries.map((entry) => ({

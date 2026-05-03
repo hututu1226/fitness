@@ -6,6 +6,7 @@ import { ExerciseHistoryPage } from '../pages/ExerciseHistoryPage'
 import { HistoryPage } from '../pages/HistoryPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { StatsPage } from '../pages/StatsPage'
+import { WorkoutEntryEditPage } from '../pages/WorkoutEntryEditPage'
 import { WorkoutExercisePickerPage } from '../pages/WorkoutExercisePickerPage'
 import { WorkoutEntryPage } from '../pages/WorkoutEntryPage'
 
@@ -20,6 +21,7 @@ export const router = createHashRouter([
       { path: 'exercises/:id/edit', element: <ExerciseEditPage mode="edit" /> },
       { path: 'workouts/new', element: <WorkoutExercisePickerPage /> },
       { path: 'workouts/new/:exerciseId', element: <WorkoutEntryPage /> },
+      { path: 'workouts/entries/:entryId/edit', element: <WorkoutEntryEditPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'history/exercise', element: <ExerciseHistoryPage /> },
       { path: 'settings', element: <SettingsPage /> },

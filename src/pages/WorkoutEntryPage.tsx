@@ -4,19 +4,38 @@ import { Link, useParams } from 'react-router-dom'
 import type { Exercise, WorkoutEntry } from '../db/schema'
 import { getBodyPartLabel } from '../features/exercises/options'
 import { getExerciseById } from '../features/exercises/service'
+import {
+  formatWeight,
+  getAppPreferences,
+  PREFERENCES_UPDATED_EVENT,
+  type AppPreferences,
+} from '../features/settings/preferences'
 import { WorkoutEntryForm } from '../features/workouts/components/WorkoutEntryForm'
-import type { WorkoutEntryFormValues } from '../features/workouts/schema'
 import { joinWorkoutEntriesWithExercises } from '../features/workouts/selectors'
-import { createWorkoutEntry, listWorkoutEntriesByDate } from '../features/workouts/service'
+import type { WorkoutEntryFormValues } from '../features/workouts/schema'
+import { createWorkoutEntry, deleteWorkoutEntry, listWorkoutEntriesByDate } from '../features/workouts/service'
 
 export function WorkoutEntryPage() {
   const { exerciseId } = useParams()
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [entries, setEntries] = useState<WorkoutEntry[]>([])
+  const [preferences, setPreferences] = useState<AppPreferences>(getAppPreferences())
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    function handlePreferencesUpdated() {
+      setPreferences(getAppPreferences())
+    }
+
+    window.addEventListener(PREFERENCES_UPDATED_EVENT, handlePreferencesUpdated)
+    return () => {
+      window.removeEventListener(PREFERENCES_UPDATED_EVENT, handlePreferencesUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     let isActive = true
@@ -64,10 +83,7 @@ export function WorkoutEntryPage() {
     }
   }, [exerciseId, selectedDate])
 
-  const entryCards = useMemo(
-    () => (exercise ? joinWorkoutEntriesWithExercises(entries, [exercise]) : []),
-    [entries, exercise],
-  )
+  const entryCards = useMemo(() => (exercise ? joinWorkoutEntriesWithExercises(entries, [exercise]) : []), [entries, exercise])
 
   async function refreshEntries(date: string) {
     const nextEntries = await listWorkoutEntriesByDate(date)
@@ -77,16 +93,29 @@ export function WorkoutEntryPage() {
   async function handleSubmit(values: WorkoutEntryFormValues) {
     setIsSubmitting(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       await createWorkoutEntry(values)
       await refreshEntries(values.date)
       setSelectedDate(values.date)
+      setSuccessMessage('已保存，继续录下一条。')
     } catch {
       setError('保存训练记录失败，请稍后重试。')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleDelete(entryId: string) {
+    const confirmed = window.confirm('确定删除这条当天记录吗？')
+
+    if (!confirmed) {
+      return
+    }
+
+    await deleteWorkoutEntry(entryId)
+    await refreshEntries(selectedDate)
   }
 
   if (isLoading) {
@@ -133,6 +162,12 @@ export function WorkoutEntryPage() {
         </div>
       </header>
 
+      {successMessage ? (
+        <p className="rounded-2xl bg-[rgba(46,103,181,0.12)] px-4 py-3 text-sm text-[rgb(46,103,181)]">
+          {successMessage}
+        </p>
+      ) : null}
+
       <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
         <WorkoutEntryForm
           date={selectedDate}
@@ -141,6 +176,9 @@ export function WorkoutEntryPage() {
           submitError={error}
           onDateChange={setSelectedDate}
           onSubmit={handleSubmit}
+          resetAfterSubmit
+          submitLabel="保存并继续"
+          weightUnitLabel={preferences.weightUnit}
         />
       </section>
 
@@ -161,10 +199,7 @@ export function WorkoutEntryPage() {
         ) : (
           <div className="mt-4 space-y-3">
             {entryCards.map((entry) => (
-              <article
-                key={entry.id}
-                className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4"
-              >
+              <article key={entry.id} className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h4 className="text-base font-semibold text-[var(--color-ink)]">
@@ -177,12 +212,30 @@ export function WorkoutEntryPage() {
 
                   <div className="flex flex-wrap gap-2">
                     {entry.sets !== null ? <Metric label="组数" value={String(entry.sets)} /> : null}
-                    {entry.weight !== null ? <Metric label="重量" value={`${entry.weight} kg`} /> : null}
+                    {entry.weight !== null ? (
+                      <Metric label="重量" value={formatWeight(entry.weight, preferences.weightUnit)} />
+                    ) : null}
                     {entry.reps !== null ? <Metric label="次数" value={String(entry.reps)} /> : null}
                   </div>
                 </div>
 
                 {entry.notes ? <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{entry.notes}</p> : null}
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    to={`/workouts/entries/${entry.id}/edit`}
+                    className="inline-flex rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+                  >
+                    编辑
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(entry.id)}
+                    className="inline-flex rounded-full bg-[rgba(143,59,30,0.12)] px-4 py-2 text-sm font-semibold text-[var(--color-brand-deep)]"
+                  >
+                    删除
+                  </button>
+                </div>
               </article>
             ))}
           </div>

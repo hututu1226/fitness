@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 function optionalNonNegativeNumber(label: string) {
   return z
-    .union([z.literal(''), z.coerce.number().min(0, `${label}不能小于 0`)])
+    .union([z.literal(''), z.coerce.number().min(0, `${label}不能小于 0`), z.null()])
     .transform((value) => (value === '' ? null : value))
 }
 

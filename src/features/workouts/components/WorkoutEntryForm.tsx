@@ -2,44 +2,49 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Exercise } from '../../../db/schema'
-import {
-  workoutEntryFormSchema,
-  type WorkoutEntryFormInput,
-  type WorkoutEntryFormValues,
-} from '../schema'
+import { workoutEntryFormSchema, type WorkoutEntryFormInput, type WorkoutEntryFormValues } from '../schema'
 
 type WorkoutEntryFormProps = {
   date: string
   exercise: Exercise
+  initialValues?: Partial<WorkoutEntryFormValues>
   isSubmitting?: boolean
   submitError?: string | null
   onDateChange: (value: string) => void
   onSubmit: (values: WorkoutEntryFormValues) => Promise<void> | void
+  resetAfterSubmit?: boolean
+  submitLabel?: string
+  weightUnitLabel?: string
 }
 
 export function WorkoutEntryForm({
   date,
   exercise,
+  initialValues,
   isSubmitting = false,
   submitError,
   onDateChange,
   onSubmit,
+  resetAfterSubmit = true,
+  submitLabel = '保存训练记录',
+  weightUnitLabel = 'kg',
 }: WorkoutEntryFormProps) {
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    setFocus,
     formState: { errors },
   } = useForm<WorkoutEntryFormInput, undefined, WorkoutEntryFormValues>({
     resolver: zodResolver(workoutEntryFormSchema),
     defaultValues: {
-      exerciseId: exercise.id,
-      date,
-      sets: '',
-      weight: '',
-      reps: '',
-      notes: '',
+      exerciseId: initialValues?.exerciseId ?? exercise.id,
+      date: initialValues?.date ?? date,
+      sets: initialValues?.sets ?? '',
+      weight: initialValues?.weight ?? '',
+      reps: initialValues?.reps ?? '',
+      notes: initialValues?.notes ?? '',
     },
   })
 
@@ -48,16 +53,31 @@ export function WorkoutEntryForm({
     setValue('exerciseId', exercise.id)
   }, [date, exercise.id, setValue])
 
+  useEffect(() => {
+    reset({
+      exerciseId: initialValues?.exerciseId ?? exercise.id,
+      date: initialValues?.date ?? date,
+      sets: initialValues?.sets ?? '',
+      weight: initialValues?.weight ?? '',
+      reps: initialValues?.reps ?? '',
+      notes: initialValues?.notes ?? '',
+    })
+  }, [date, exercise.id, initialValues, reset])
+
   async function handleValidSubmit(values: WorkoutEntryFormValues) {
     await onSubmit(values)
-    reset({
-      exerciseId: exercise.id,
-      date: values.date,
-      sets: '',
-      weight: '',
-      reps: '',
-      notes: '',
-    })
+
+    if (resetAfterSubmit) {
+      reset({
+        exerciseId: exercise.id,
+        date: values.date,
+        sets: values.sets ?? '',
+        weight: values.weight ?? '',
+        reps: values.reps ?? '',
+        notes: '',
+      })
+      setFocus('sets')
+    }
   }
 
   return (
@@ -90,7 +110,7 @@ export function WorkoutEntryForm({
           />
         </Field>
 
-        <Field label="重量 (kg)" htmlFor="weight" error={errors.weight?.message}>
+        <Field label={`重量 (${weightUnitLabel})`} htmlFor="weight" error={errors.weight?.message}>
           <input
             id="weight"
             type="number"
@@ -137,7 +157,7 @@ export function WorkoutEntryForm({
         disabled={isSubmitting}
         className="w-full rounded-2xl bg-[var(--color-brand)] px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? '保存中...' : '保存训练记录'}
+        {isSubmitting ? '保存中...' : submitLabel}
       </button>
     </form>
   )

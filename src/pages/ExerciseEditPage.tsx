@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { Exercise } from '../db/schema'
 import { ExerciseForm } from '../features/exercises/components/ExerciseForm'
 import { createExercise, getExerciseById, updateExercise } from '../features/exercises/service'
@@ -11,6 +11,8 @@ type ExerciseEditPageProps = {
 
 export function ExerciseEditPage({ mode }: ExerciseEditPageProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnTo = searchParams.get('returnTo') ?? '/exercises'
   const { id } = useParams()
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [isLoading, setIsLoading] = useState(mode === 'edit')
@@ -41,11 +43,9 @@ export function ExerciseEditPage({ mode }: ExerciseEditPageProps) {
 
         setExercise(result)
       } catch {
-        if (!isActive) {
-          return
+        if (isActive) {
+          setError('动作信息加载失败，请稍后重试。')
         }
-
-        setError('动作信息加载失败，请稍后重试。')
       } finally {
         if (isActive) {
           setIsLoading(false)
@@ -69,7 +69,7 @@ export function ExerciseEditPage({ mode }: ExerciseEditPageProps) {
         await updateExercise(id, values)
       }
 
-      navigate('/exercises')
+      navigate(returnTo)
     } catch {
       setError('保存失败，请稍后重试。')
     } finally {
@@ -84,15 +84,12 @@ export function ExerciseEditPage({ mode }: ExerciseEditPageProps) {
   return (
     <section className="space-y-4">
       <header className="rounded-3xl bg-[var(--color-surface)] p-5">
-        <Link to="/exercises" className="text-sm font-medium text-[var(--color-brand-deep)]">
-          返回动作库
+        <Link to={returnTo} className="text-sm font-medium text-[var(--color-brand-deep)]">
+          {returnTo === '/workouts/new' ? '返回新增训练' : '返回动作库'}
         </Link>
         <h2 className="mt-3 text-xl font-bold text-[var(--color-ink)]">
           {mode === 'create' ? '新增动作' : '编辑动作'}
         </h2>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
-          把动作名称、训练部位和备注整理好，后面记录训练时会更省事。
-        </p>
       </header>
 
       {mode === 'edit' && error && !exercise ? (

@@ -1,14 +1,22 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Exercise, WorkoutEntry } from '../db/schema'
 import { getBodyPartLabel } from '../features/exercises/options'
 import { listExercises } from '../features/exercises/service'
 import {
+  formatWeight,
+  getAppPreferences,
+  PREFERENCES_UPDATED_EVENT,
+  type AppPreferences,
+} from '../features/settings/preferences'
+import {
   formatWorkoutDateWithWeekday,
   groupWorkoutEntriesByDate,
   joinWorkoutEntriesWithExercises,
+  type WorkoutEntryWithExercise,
 } from '../features/workouts/selectors'
-import { listWorkoutEntries } from '../features/workouts/service'
+import { deleteWorkoutEntry, listWorkoutEntries } from '../features/workouts/service'
 
 type JoinedEntry = ReturnType<typeof joinWorkoutEntriesWithExercises>[number]
 
@@ -32,9 +40,12 @@ const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8�
 export function StatsPage() {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [entries, setEntries] = useState<WorkoutEntry[]>([])
+  const [preferences, setPreferences] = useState<AppPreferences>(getAppPreferences())
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'history' | 'stats'>('stats')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
 
   useEffect(() => {
     let isActive = true
@@ -65,6 +76,17 @@ export function StatsPage() {
     }
   }, [])
 
+  useEffect(() => {
+    function handlePreferencesUpdated() {
+      setPreferences(getAppPreferences())
+    }
+
+    window.addEventListener(PREFERENCES_UPDATED_EVENT, handlePreferencesUpdated)
+    return () => {
+      window.removeEventListener(PREFERENCES_UPDATED_EVENT, handlePreferencesUpdated)
+    }
+  }, [])
+
   const joinedEntries = useMemo(() => joinWorkoutEntriesWithExercises(entries, exercises), [entries, exercises])
   const groupedEntries = useMemo(() => groupWorkoutEntriesByDate(joinedEntries), [joinedEntries])
 
@@ -73,10 +95,10 @@ export function StatsPage() {
     return { totalCount: joinedEntries.length, totalDays: trainedDays }
   }, [joinedEntries])
 
-  const weeklySummary = useMemo(
-    () => summarizePeriod(joinedEntries, startOfBusinessWeek(dayjs()), endOfBusinessWeek(dayjs())),
-    [joinedEntries],
-  )
+  const weekStart = useMemo(() => startOfBusinessWeek(dayjs(), preferences.weekStartsOn), [preferences.weekStartsOn])
+  const weekEnd = useMemo(() => endOfBusinessWeek(dayjs(), preferences.weekStartsOn), [preferences.weekStartsOn])
+
+  const weeklySummary = useMemo(() => summarizePeriod(joinedEntries, weekStart, weekEnd), [joinedEntries, weekEnd, weekStart])
   const monthlySummary = useMemo(
     () => summarizePeriod(joinedEntries, dayjs().startOf('month'), dayjs().endOf('month')),
     [joinedEntries],
@@ -86,17 +108,14 @@ export function StatsPage() {
     [joinedEntries],
   )
 
-  const weeklyDays = useMemo(() => {
-    const start = startOfBusinessWeek(dayjs())
-    return buildTrainingDays(joinedEntries, start, 7)
-  }, [joinedEntries])
+  const weeklyDays = useMemo(() => buildTrainingDays(joinedEntries, weekStart, 7), [joinedEntries, weekStart])
 
   const monthlyCells = useMemo(() => {
     const currentMonth = dayjs()
     const monthStart = currentMonth.startOf('month')
     const monthEnd = currentMonth.endOf('month')
-    const gridStart = startOfBusinessWeek(monthStart)
-    const gridEnd = endOfBusinessWeek(monthEnd)
+    const gridStart = startOfBusinessWeek(monthStart, preferences.weekStartsOn)
+    const gridEnd = endOfBusinessWeek(monthEnd, preferences.weekStartsOn)
     const trainingMap = buildEntryCountMap(joinedEntries)
     const cells: MonthCell[] = []
     let cursor = gridStart
@@ -115,7 +134,7 @@ export function StatsPage() {
     }
 
     return cells
-  }, [joinedEntries])
+  }, [joinedEntries, preferences.weekStartsOn])
 
   const yearlyBars = useMemo(() => {
     const year = dayjs().year()
@@ -132,21 +151,49 @@ export function StatsPage() {
     const maxValue = Math.max(...counts, 1)
 
     return counts.map((count, index) => ({
+      monthIndex: index,
       label: monthLabels[index],
       count,
       heightPercent: `${Math.max((count / maxValue) * 100, count > 0 ? 14 : 6)}%`,
     }))
   }, [joinedEntries])
 
+  const selectedDateEntries = useMemo(() => {
+    if (!selectedDate) {
+      return []
+    }
+
+    return joinedEntries
+      .filter((entry) => entry.date === selectedDate)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+  }, [joinedEntries, selectedDate])
+
+  const selectedMonthEntries = useMemo(() => {
+    if (selectedMonth === null) {
+      return []
+    }
+
+    return joinedEntries
+      .filter((entry) => dayjs(entry.date).month() === selectedMonth && dayjs(entry.date).year() === dayjs().year())
+      .sort((left, right) => right.date.localeCompare(left.date) || right.createdAt.localeCompare(left.createdAt))
+  }, [joinedEntries, selectedMonth])
+
+  async function handleDeleteEntry(entry: JoinedEntry) {
+    const confirmed = window.confirm(`确定删除 ${entry.exercise?.name ?? '这条'} 训练记录吗？`)
+
+    if (!confirmed) {
+      return
+    }
+
+    await deleteWorkoutEntry(entry.id)
+    setEntries((current) => current.filter((item) => item.id !== entry.id))
+  }
+
   return (
     <section className="space-y-4">
       <div className="rounded-[2rem] bg-white p-2 shadow-[0_18px_36px_rgba(24,33,38,0.08)]">
         <div className="grid grid-cols-2 gap-2">
-          <ViewTab
-            label="历史记录"
-            isActive={activeView === 'history'}
-            onClick={() => setActiveView('history')}
-          />
+          <ViewTab label="历史记录" isActive={activeView === 'history'} onClick={() => setActiveView('history')} />
           <ViewTab label="统计" isActive={activeView === 'stats'} onClick={() => setActiveView('stats')} />
         </div>
       </div>
@@ -166,7 +213,7 @@ export function StatsPage() {
       ) : null}
 
       {!isLoading && activeView === 'history' ? (
-        <HistoryView groupedEntries={groupedEntries} />
+        <HistoryView groupedEntries={groupedEntries} preferences={preferences} onDelete={handleDeleteEntry} />
       ) : null}
 
       {!isLoading && activeView === 'stats' ? (
@@ -185,19 +232,25 @@ export function StatsPage() {
             <div className="text-center">
               <h3 className="text-lg font-bold text-[var(--color-ink)]">周统计</h3>
               <p className="mt-1 text-sm text-[var(--color-muted)]">
-                {startOfBusinessWeek(dayjs()).format('M/D')} - {endOfBusinessWeek(dayjs()).format('M/D')}
+                {weekStart.format('M/D')} - {weekEnd.format('M/D')}
               </p>
             </div>
 
             <div className="mt-4 grid grid-cols-7 gap-2">
               {weeklyDays.map((day, index) => (
-                <article
+                <button
                   key={day.date}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(day.date)
+                    setSelectedMonth(null)
+                  }}
                   className={[
-                    'min-h-28 rounded-2xl border p-2 text-center',
+                    'min-h-28 rounded-2xl border p-2 text-center transition',
                     day.entryCount > 0
                       ? 'border-[rgba(46,103,181,0.20)] bg-[rgba(46,103,181,0.10)]'
                       : 'border-[var(--color-line)] bg-[var(--color-card)]',
+                    selectedDate === day.date ? 'ring-2 ring-[rgba(216,105,61,0.35)]' : '',
                   ].join(' ')}
                 >
                   <p className="text-xs font-semibold text-[var(--color-muted)]">{weekdayLabels[index]}</p>
@@ -237,7 +290,7 @@ export function StatsPage() {
                       </>
                     )}
                   </div>
-                </article>
+                </button>
               ))}
             </div>
 
@@ -263,17 +316,23 @@ export function StatsPage() {
 
             <div className="mt-2 grid grid-cols-7 gap-2">
               {monthlyCells.map((cell) => (
-                <div
+                <button
+                  type="button"
                   key={cell.date}
                   title={`${cell.date} · ${cell.trained ? '已训练' : '未训练'}`}
+                  onClick={() => {
+                    setSelectedDate(cell.date)
+                    setSelectedMonth(null)
+                  }}
                   className={[
                     'flex h-10 items-center justify-center rounded-xl text-xs font-medium transition',
                     getMonthCellTone(cell.trained),
                     cell.inCurrentMonth ? 'opacity-100' : 'opacity-35',
+                    selectedDate === cell.date ? 'ring-2 ring-[rgba(216,105,61,0.35)]' : '',
                   ].join(' ')}
                 >
                   {cell.dayNumber}
-                </div>
+                </button>
               ))}
             </div>
 
@@ -304,14 +363,25 @@ export function StatsPage() {
 
             <div className="mt-6 flex h-56 items-end justify-between gap-2 rounded-[1.5rem] bg-[var(--color-card)] px-3 pb-4 pt-6">
               {yearlyBars.map((bar) => (
-                <div key={bar.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                <button
+                  type="button"
+                  key={bar.label}
+                  onClick={() => {
+                    setSelectedMonth(bar.monthIndex)
+                    setSelectedDate(null)
+                  }}
+                  className={[
+                    'flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2 rounded-xl transition',
+                    selectedMonth === bar.monthIndex ? 'bg-white/55 px-1' : '',
+                  ].join(' ')}
+                >
                   <span className="text-[10px] font-semibold text-[var(--color-brand-deep)]">{bar.count}</span>
                   <div
                     className="w-full rounded-t-2xl bg-[linear-gradient(180deg,#5d9cec_0%,#d8693d_100%)]"
                     style={{ height: bar.heightPercent }}
                   />
                   <span className="whitespace-nowrap text-[9px] text-[var(--color-muted)]">{bar.label}</span>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -322,13 +392,37 @@ export function StatsPage() {
               <MiniStat label="主练部位" value={yearlySummary.topBodyPart} />
             </div>
           </section>
+
+          {selectedDate ? (
+            <DetailPanel
+              title={`${formatWorkoutDateWithWeekday(selectedDate)} 详情`}
+              entries={selectedDateEntries}
+              preferences={preferences}
+              onDelete={handleDeleteEntry}
+              onClose={() => setSelectedDate(null)}
+            />
+          ) : null}
+
+          {selectedMonth !== null ? (
+            <DetailPanel
+              title={`${monthLabels[selectedMonth]} 详情`}
+              entries={selectedMonthEntries}
+              preferences={preferences}
+              onDelete={handleDeleteEntry}
+              onClose={() => setSelectedMonth(null)}
+            />
+          ) : null}
         </div>
       ) : null}
     </section>
   )
 }
 
-function HistoryView(props: { groupedEntries: ReturnType<typeof groupWorkoutEntriesByDate> }) {
+function HistoryView(props: {
+  groupedEntries: ReturnType<typeof groupWorkoutEntriesByDate>
+  preferences: AppPreferences
+  onDelete: (entry: WorkoutEntryWithExercise) => Promise<void> | void
+}) {
   if (props.groupedEntries.length === 0) {
     return (
       <section className="rounded-3xl border border-dashed border-[var(--color-line)] bg-white p-5">
@@ -359,34 +453,92 @@ function HistoryView(props: { groupedEntries: ReturnType<typeof groupWorkoutEntr
 
           <div className="mt-4 space-y-3">
             {group.entries.map((entry) => (
-              <article
-                key={entry.id}
-                className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-[var(--color-ink)]">
-                      {entry.exercise?.name ?? '未知动作'}
-                    </h3>
-                    <p className="mt-1 text-sm text-[var(--color-muted)]">
-                      {entry.exercise ? getBodyPartLabel(entry.exercise.bodyPart) : '动作已从库中删除'}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {entry.sets !== null ? <MetricChip label="组数" value={String(entry.sets)} /> : null}
-                    {entry.weight !== null ? <MetricChip label="重量" value={`${entry.weight} kg`} /> : null}
-                    {entry.reps !== null ? <MetricChip label="次数" value={String(entry.reps)} /> : null}
-                  </div>
-                </div>
-
-                {entry.notes ? <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{entry.notes}</p> : null}
-              </article>
+              <EntryCard key={entry.id} entry={entry} preferences={props.preferences} onDelete={props.onDelete} />
             ))}
           </div>
         </section>
       ))}
     </div>
+  )
+}
+
+function DetailPanel(props: {
+  title: string
+  entries: JoinedEntry[]
+  preferences: AppPreferences
+  onDelete: (entry: JoinedEntry) => Promise<void> | void
+  onClose: () => void
+}) {
+  return (
+    <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold text-[var(--color-ink)]">{props.title}</h3>
+        <button
+          type="button"
+          onClick={props.onClose}
+          className="rounded-full border border-[var(--color-line)] px-3 py-1 text-xs font-medium text-[var(--color-ink)]"
+        >
+          收起
+        </button>
+      </div>
+
+      {props.entries.length === 0 ? (
+        <p className="mt-4 rounded-2xl bg-[var(--color-card)] px-4 py-4 text-sm text-[var(--color-muted)]">
+          这里还没有训练记录。
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {props.entries.map((entry) => (
+            <EntryCard key={entry.id} entry={entry} preferences={props.preferences} onDelete={props.onDelete} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function EntryCard(props: {
+  entry: WorkoutEntryWithExercise
+  preferences: AppPreferences
+  onDelete: (entry: WorkoutEntryWithExercise) => Promise<void> | void
+}) {
+  return (
+    <article className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-[var(--color-ink)]">{props.entry.exercise?.name ?? '未知动作'}</h3>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">
+            {props.entry.exercise ? getBodyPartLabel(props.entry.exercise.bodyPart) : '动作已从库中删除'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {props.entry.sets !== null ? <MetricChip label="组数" value={String(props.entry.sets)} /> : null}
+          {props.entry.weight !== null ? (
+            <MetricChip label="重量" value={formatWeight(props.entry.weight, props.preferences.weightUnit)} />
+          ) : null}
+          {props.entry.reps !== null ? <MetricChip label="次数" value={String(props.entry.reps)} /> : null}
+        </div>
+      </div>
+
+      {props.entry.notes ? <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{props.entry.notes}</p> : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          to={`/workouts/entries/${props.entry.id}/edit`}
+          className="inline-flex rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+        >
+          编辑
+        </Link>
+        <button
+          type="button"
+          onClick={() => void props.onDelete(props.entry)}
+          className="inline-flex rounded-full bg-[rgba(143,59,30,0.12)] px-4 py-2 text-sm font-semibold text-[var(--color-brand-deep)]"
+        >
+          删除
+        </button>
+      </div>
+    </article>
   )
 }
 
@@ -452,21 +604,17 @@ function buildEntryCountMap(entries: JoinedEntry[]) {
   return map
 }
 
-function startOfBusinessWeek(value: Dayjs) {
-  const dayIndex = (value.day() + 6) % 7
-  return value.startOf('day').subtract(dayIndex, 'day')
+function startOfBusinessWeek(value: Dayjs, weekStartsOn: AppPreferences['weekStartsOn']) {
+  const offset = weekStartsOn === 'sunday' ? value.day() : (value.day() + 6) % 7
+  return value.startOf('day').subtract(offset, 'day')
 }
 
-function endOfBusinessWeek(value: Dayjs) {
-  return startOfBusinessWeek(value).add(6, 'day')
+function endOfBusinessWeek(value: Dayjs, weekStartsOn: AppPreferences['weekStartsOn']) {
+  return startOfBusinessWeek(value, weekStartsOn).add(6, 'day')
 }
 
 function getMonthCellTone(trained: boolean) {
-  if (trained) {
-    return 'bg-sky-400 text-white'
-  }
-
-  return 'bg-slate-300 text-slate-600'
+  return trained ? 'bg-sky-400 text-white' : 'bg-slate-300 text-slate-600'
 }
 
 function ViewTab(props: { label: string; isActive: boolean; onClick: () => void }) {

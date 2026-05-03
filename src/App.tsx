@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router-dom'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import { AppProviders } from './app/providers'
 import { router } from './app/router'
 import { ensureStarterExercises } from './features/exercises/service'
@@ -27,6 +28,7 @@ function App() {
   return (
     <AppProviders>
       {isBooting ? <SplashScreen /> : <RouterProvider router={router} />}
+      <PwaUpdatePrompt />
     </AppProviders>
   )
 }
@@ -45,6 +47,49 @@ function SplashScreen() {
         <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">每天进步一小步。</p>
         <div className="mx-auto mt-6 h-2.5 w-40 overflow-hidden rounded-full bg-[rgba(143,59,30,0.10)]">
           <div className="h-full w-full origin-left animate-[splash-load_1.4s_ease-in-out] rounded-full bg-[linear-gradient(90deg,#d8693d_0%,#5d9cec_100%)]" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PwaUpdatePrompt() {
+  const {
+    offlineReady: [offlineReady, setOfflineReady],
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW()
+
+  if (!offlineReady && !needRefresh) {
+    return null
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-sm rounded-[1.7rem] border border-[var(--color-line)] bg-white/95 p-4 shadow-[0_20px_45px_rgba(24,33,38,0.18)] backdrop-blur">
+        <p className="text-sm font-semibold text-[var(--color-ink)]">
+          {needRefresh ? '发现新版本，可立即更新。' : '应用已支持离线使用。'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {needRefresh ? (
+            <button
+              type="button"
+              onClick={() => void updateServiceWorker(true)}
+              className="rounded-full bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              立即更新
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setOfflineReady(false)
+              setNeedRefresh(false)
+            }}
+            className="rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+          >
+            知道了
+          </button>
         </div>
       </div>
     </div>

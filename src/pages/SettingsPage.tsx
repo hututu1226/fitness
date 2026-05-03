@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import {
   clearAppData,
@@ -6,17 +7,26 @@ import {
   importAppData,
   type AppDataExport,
 } from '../features/settings/service'
+import {
+  getAppPreferences,
+  getWeekStartsOnLabel,
+  getWeightUnitLabel,
+  saveAppPreferences,
+  type AppPreferences,
+} from '../features/settings/preferences'
 
 type Summary = {
   exerciseCount: number
   workoutEntryCount: number
   trainedDayCount: number
   exportVersion: number
+  lastUpdatedAt: string | null
 }
 
 export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [preferences, setPreferences] = useState<AppPreferences>(getAppPreferences())
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -38,6 +48,7 @@ export function SettingsPage() {
 
         if (isActive) {
           setSummary(nextSummary)
+          setPreferences(getAppPreferences())
         }
       } catch {
         if (isActive) {
@@ -124,6 +135,13 @@ export function SettingsPage() {
     }
   }
 
+  function handlePreferenceChange(nextPreferences: Partial<AppPreferences>) {
+    const saved = saveAppPreferences(nextPreferences)
+    setPreferences(saved)
+    setMessage('偏好设置已更新。')
+    setError(null)
+  }
+
   return (
     <section className="space-y-4">
       <header className="rounded-[2rem] bg-[linear-gradient(180deg,#f7efe3_0%,#efdfca_100%)] p-5 text-center shadow-[0_20px_40px_rgba(143,59,30,0.08)]">
@@ -145,13 +163,50 @@ export function SettingsPage() {
         {isLoading ? (
           <p className="mt-4 text-sm text-[var(--color-muted)]">正在读取本地数据...</p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <SummaryCard label="动作数量" value={String(summary?.exerciseCount ?? 0)} />
-            <SummaryCard label="记录条数" value={String(summary?.workoutEntryCount ?? 0)} />
-            <SummaryCard label="训练天数" value={String(summary?.trainedDayCount ?? 0)} />
-            <SummaryCard label="数据版本" value={`v${summary?.exportVersion ?? 0}`} />
-          </div>
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <SummaryCard label="动作数量" value={String(summary?.exerciseCount ?? 0)} />
+              <SummaryCard label="记录条数" value={String(summary?.workoutEntryCount ?? 0)} />
+              <SummaryCard label="训练天数" value={String(summary?.trainedDayCount ?? 0)} />
+              <SummaryCard label="数据版本" value={`v${summary?.exportVersion ?? 0}`} />
+            </div>
+            <p className="mt-4 text-sm text-[var(--color-muted)]">
+              数据更新时间：
+              {summary?.lastUpdatedAt ? dayjs(summary.lastUpdatedAt).format('YYYY年M月D日 HH:mm') : '暂无'}
+            </p>
+          </>
         )}
+      </section>
+
+      <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
+        <h3 className="text-lg font-bold text-[var(--color-ink)]">使用偏好</h3>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field label="重量单位">
+            <select
+              value={preferences.weightUnit}
+              onChange={(event) =>
+                handlePreferenceChange({ weightUnit: event.target.value as AppPreferences['weightUnit'] })
+              }
+              className="w-full rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-brand)] focus:bg-white"
+            >
+              <option value="kg">{getWeightUnitLabel('kg')}</option>
+              <option value="lb">{getWeightUnitLabel('lb')}</option>
+            </select>
+          </Field>
+
+          <Field label="每周起始日">
+            <select
+              value={preferences.weekStartsOn}
+              onChange={(event) =>
+                handlePreferenceChange({ weekStartsOn: event.target.value as AppPreferences['weekStartsOn'] })
+              }
+              className="w-full rounded-2xl border border-[var(--color-line)] bg-[var(--color-card)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-brand)] focus:bg-white"
+            >
+              <option value="monday">{getWeekStartsOnLabel('monday')}</option>
+              <option value="sunday">{getWeekStartsOnLabel('sunday')}</option>
+            </select>
+          </Field>
+        </div>
       </section>
 
       <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
@@ -194,15 +249,16 @@ export function SettingsPage() {
           onChange={(event) => void handleImport(event)}
         />
       </section>
-
-      <section className="rounded-[1.7rem] border border-[var(--color-line)] bg-white p-5 shadow-[0_12px_28px_rgba(24,33,38,0.06)]">
-        <h3 className="text-lg font-bold text-[var(--color-ink)]">关于本应用</h3>
-        <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-muted)]">
-          <p>这是一个移动端优先的本地训练记录 App，数据默认保存在浏览器的 IndexedDB。</p>
-          <p>动作 GIF 跟随应用一起打包，离线时也能继续查看。</p>
-        </div>
-      </section>
     </section>
+  )
+}
+
+function Field(props: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-[var(--color-ink)]">{props.label}</span>
+      {props.children}
+    </label>
   )
 }
 

@@ -83,6 +83,11 @@ export async function listWorkoutEntriesByExercise(exerciseId: string) {
   return sortWorkoutEntries(entries)
 }
 
+export async function listRecentWorkoutEntries(limit = 12) {
+  const entries = await listWorkoutEntries()
+  return entries.slice(0, limit)
+}
+
 export async function deleteWorkoutEntry(entryId: string) {
   const db = await getAppDb()
   await db.delete(WORKOUT_ENTRIES_STORE, entryId)

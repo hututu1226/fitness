@@ -63,10 +63,15 @@ export async function getAppDataSummary() {
   const data = await exportAppData()
   const trainedDays = new Set(data.workoutEntries.map((entry) => entry.date)).size
 
+  const latestUpdatedAt = [...data.exercises, ...data.workoutEntries]
+    .map((item) => item.updatedAt)
+    .sort((left, right) => right.localeCompare(left))[0] ?? null
+
   return {
     exerciseCount: data.exercises.filter((exercise) => !exercise.isDeleted).length,
     workoutEntryCount: data.workoutEntries.length,
     trainedDayCount: trainedDays,
     exportVersion: data.meta.version,
+    lastUpdatedAt: latestUpdatedAt,
   }
 }

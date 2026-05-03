@@ -36,7 +36,6 @@ describe('Workout entry flow', () => {
 
     expect(await screen.findByRole('heading', { name: '杠铃深蹲' })).toBeInTheDocument()
     expect(screen.queryByLabelText('动作')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('时长 (秒)')).not.toBeInTheDocument()
 
     await userEvent.clear(screen.getByLabelText('组数'))
     await userEvent.type(screen.getByLabelText('组数'), '4')
@@ -46,11 +45,12 @@ describe('Workout entry flow', () => {
     await userEvent.type(screen.getByLabelText('次数'), '8')
     await userEvent.type(screen.getByLabelText('备注'), '最后一组很吃力')
 
-    await userEvent.click(screen.getByRole('button', { name: '保存训练记录' }))
+    await userEvent.click(screen.getByRole('button', { name: '保存并继续' }))
 
     await waitFor(() => {
       expect(screen.getByText('最后一组很吃力')).toBeInTheDocument()
       expect(screen.getByText('100 kg')).toBeInTheDocument()
+      expect(screen.getByText('已保存，继续录下一条。')).toBeInTheDocument()
     })
 
     expect(exercise.name).toBe('杠铃深蹲')
